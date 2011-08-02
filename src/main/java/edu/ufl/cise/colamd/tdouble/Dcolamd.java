@@ -110,24 +110,24 @@ public class Dcolamd {
 	public static int COLAMD_STATUS = 3 ;
 
 	/* stats [4..6]: error info, or info on jumbled columns */
-	public static int COLAMD_INFO1 = 4 ;
-	public static int COLAMD_INFO2 = 5 ;
-	public static int COLAMD_INFO3 = 6 ;
+	public static final int COLAMD_INFO1 = 4 ;
+	public static final int COLAMD_INFO2 = 5 ;
+	public static final int COLAMD_INFO3 = 6 ;
 
 	/* error codes returned in stats [3]: */
-	public static int COLAMD_OK				= (0) ;
-	public static int COLAMD_OK_BUT_JUMBLED			= (1) ;
-	public static int COLAMD_ERROR_A_not_present		= (-1) ;
-	public static int COLAMD_ERROR_p_not_present		= (-2) ;
-	public static int COLAMD_ERROR_nrow_negative		= (-3) ;
-	public static int COLAMD_ERROR_ncol_negative		= (-4) ;
-	public static int COLAMD_ERROR_nnz_negative		= (-5) ;
-	public static int COLAMD_ERROR_p0_nonzero			= (-6) ;
-	public static int COLAMD_ERROR_A_too_small		= (-7) ;
-	public static int COLAMD_ERROR_col_length_negative	= (-8) ;
-	public static int COLAMD_ERROR_row_index_out_of_bounds	= (-9) ;
-	public static int COLAMD_ERROR_out_of_memory		= (-10) ;
-	public static int COLAMD_ERROR_internal_error		= (-999) ;
+	public static final int COLAMD_OK				= (0) ;
+	public static final int COLAMD_OK_BUT_JUMBLED			= (1) ;
+	public static final int COLAMD_ERROR_A_not_present		= (-1) ;
+	public static final int COLAMD_ERROR_p_not_present		= (-2) ;
+	public static final int COLAMD_ERROR_nrow_negative		= (-3) ;
+	public static final int COLAMD_ERROR_ncol_negative		= (-4) ;
+	public static final int COLAMD_ERROR_nnz_negative		= (-5) ;
+	public static final int COLAMD_ERROR_p0_nonzero			= (-6) ;
+	public static final int COLAMD_ERROR_A_too_small		= (-7) ;
+	public static final int COLAMD_ERROR_col_length_negative	= (-8) ;
+	public static final int COLAMD_ERROR_row_index_out_of_bounds	= (-9) ;
+	public static final int COLAMD_ERROR_out_of_memory		= (-10) ;
+	public static final int COLAMD_ERROR_internal_error		= (-999) ;
 
 /* ========================================================================== */
 /* === Scaffolding code definitions  ======================================== */
@@ -287,15 +287,42 @@ public class Dcolamd {
 	private static final int DEAD_NON_PRINCIPAL	= (-2) ;
 
 	/* Row and column status update and checking. */
-//	private static ROW_IS_DEAD(r)			ROW_IS_MARKED_DEAD (Row[r].shared2.mark)
-//	private static ROW_IS_MARKED_DEAD(row_mark)	(row_mark < ALIVE)
-//	private static ROW_IS_ALIVE(r)			(Row [r].shared2.mark >= ALIVE)
-//	private static COL_IS_DEAD(c)			(Col [c].start < ALIVE)
-//	private static COL_IS_ALIVE(c)			(Col [c].start >= ALIVE)
-//	private static COL_IS_DEAD_PRINCIPAL(c)	(Col [c].start == DEAD_PRINCIPAL)
-//	private static KILL_ROW(r)			{ Row [r].shared2.mark = DEAD ; }
-//	private static KILL_PRINCIPAL_COL(c)		{ Col [c].start = DEAD_PRINCIPAL ; }
-//	private static KILL_NON_PRINCIPAL_COL(c)	{ Col [c].start = DEAD_NON_PRINCIPAL ; }
+	private static boolean ROW_IS_DEAD(int r)
+	{
+		return ROW_IS_MARKED_DEAD (Row[r].shared2.mark) ;
+	}
+	private static boolean ROW_IS_MARKED_DEAD(int row_mark)
+	{
+		return (row_mark < ALIVE) ;
+	}
+	private static boolean ROW_IS_ALIVE(int r)
+	{
+		return (Row [r].shared2.mark >= ALIVE) ;
+	}
+	private static boolean COL_IS_DEAD(int c)
+	{
+		return (Col [c].start < ALIVE) ;
+	}
+	private static boolean COL_IS_ALIVE(int c)
+	{
+		return (Col [c].start >= ALIVE) ;
+	}
+	private static boolean COL_IS_DEAD_PRINCIPAL(int c)
+	{
+		return (Col [c].start == DEAD_PRINCIPAL) ;
+	}
+	private static void KILL_ROW(int r)
+	{
+		Row [r].shared2.mark = DEAD ;
+	}
+	private static void KILL_PRINCIPAL_COL(int c)
+	{
+		Col [c].start = DEAD_PRINCIPAL ;
+	}
+	private static void KILL_NON_PRINCIPAL_COL(int c)
+	{
+		Col [c].start = DEAD_NON_PRINCIPAL ;
+	}
 
 /* ========================================================================== */
 /* === Colamd reporting mechanism =========================================== */
@@ -774,7 +801,7 @@ public class Dcolamd {
 	    if (!mark)
 	    {
 		stats [COLAMD_STATUS] = COLAMD_ERROR_out_of_memory ;
-		(release) ((void[]) count) ;
+		release ((void[]) count) ;
 		DEBUG0 ("symamd: allocate mark (size %d) failed\n", n+1) ;
 		return (FALSE) ;
 	    }
@@ -1276,7 +1303,7 @@ public class Dcolamd {
 	    stats [COLAMD_DENSE_ROW] = n_row - n_row2 ;
 	    stats [COLAMD_DENSE_COL] = n_col - n_col2 ;
 	    stats [COLAMD_DEFRAG_COUNT] = ngarbage ;
-	    DEBUG0 (("colamd: done.\n")) ;
+	    DEBUG0 ("colamd: done.\n") ;
 	    return (TRUE) ;
 	}
 
@@ -1489,7 +1516,7 @@ public class Dcolamd {
 
 	    if (stats [COLAMD_STATUS] == COLAMD_OK_BUT_JUMBLED)
 	    {
-	    	DEBUG0 (("colamd: reconstructing column form, matrix jumbled\n")) ;
+	    	DEBUG0 ("colamd: reconstructing column form, matrix jumbled\n") ;
 
 	    if (!NDEBUG)
 	    {
@@ -2026,7 +2053,7 @@ public class Dcolamd {
 
 		if (!NDEBUG)
 		{
-		DEBUG3 (("check2\n")) ;
+		DEBUG3 ("check2\n") ;
 		debug_mark (n_row, Row, tag_mark, max_mark) ;
 		} /* NDEBUG */
 
@@ -2686,7 +2713,7 @@ public class Dcolamd {
 	    int debug_rows ;
 	    if (!NDEBUG)
 	    {
-	    DEBUG2 (("Defrag..\n")) ;
+	    DEBUG2 ("Defrag..\n") ;
 	    for (psrc = A[0] ; psrc < pfree ; psrc++) ASSERT (psrc >= 0) ;
 	    debug_rows = 0 ;
 	    }
@@ -2831,14 +2858,14 @@ public class Dcolamd {
 	 * @param method
 	 * @param stats
 	 */
-	private static void print_report (char method, int[] stats)
+	private static void print_report (String method, int[] stats)
 	{
 		int i1, i2, i3 ;
 
 	    PRINTF ("\n%s version %d.%d, %s: ", method,
 		    COLAMD_MAIN_VERSION, COLAMD_SUB_VERSION, COLAMD_DATE) ;
 
-	    if (!stats)
+	    if (stats == null)
 	    {
 	    	PRINTF ("No statistics available.\n") ;
 		return ;
@@ -2951,8 +2978,298 @@ public class Dcolamd {
 
 
 
-	/* ========================================================================== */
-	/* === colamd debugging routines ============================================ */
-	/* ========================================================================== */
+/* ========================================================================== */
+/* === colamd debugging routines ============================================ */
+/* ========================================================================== */
 
+	/**
+	 * At this point, all empty rows and columns are dead.  All live columns
+	 * are "clean" (containing no dead rows) and simplicial (no supercolumns
+	 * yet).  Rows may contain dead columns, but all live rows contain at
+	 * least one live column.
+	 *
+	 * @param n_row
+	 * @param n_col
+	 * @param Row
+	 * @param Col
+	 * @param A
+	 * @param n_col2
+	 */
+	private static void debug_structures (int n_row, int n_col,
+			Colamd_Row[] Row, Colamd_Col[] Col, int[] A, int n_col2)
+	{
+		if (!NDEBUG)
+		{
+		/* === Local variables ============================================== */
+
+	    int i ;
+	    int c ;
+	    int cp ;
+	    int cp_end ;
+	    int len ;
+	    int score ;
+	    int r ;
+	    int rp ;
+	    int rp_end ;
+	    int deg ;
+
+	    /* === Check A, Row, and Col ======================================== */
+
+	    for (c = 0 ; c < n_col ; c++)
+	    {
+		if (COL_IS_ALIVE (c))
+		{
+		    len = Col [c].length ;
+		    score = Col [c].shared2.score ;
+		    DEBUG4 ("initial live col %5d %5d %5d\n", c, len, score) ;
+		    ASSERT (len > 0) ;
+		    ASSERT (score >= 0) ;
+		    ASSERT (Col [c].shared1.thickness == 1) ;
+		    cp = A [Col [c].start] ;
+		    cp_end = cp + len ;
+		    while (cp < cp_end)
+		    {
+			r = cp++ ;
+			ASSERT (ROW_IS_ALIVE (r)) ;
+		    }
+		}
+		else
+		{
+		    i = Col [c].shared2.order ;
+		    ASSERT (i >= n_col2 && i < n_col) ;
+		}
+	    }
+
+	    for (r = 0 ; r < n_row ; r++)
+	    {
+		if (ROW_IS_ALIVE (r))
+		{
+		    i = 0 ;
+		    len = Row [r].length ;
+		    deg = Row [r].shared1.degree ;
+		    ASSERT (len > 0) ;
+		    ASSERT (deg > 0) ;
+		    rp = A [Row [r].start] ;
+		    rp_end = rp + len ;
+		    while (rp < rp_end)
+		    {
+			c = rp++ ;
+			if (COL_IS_ALIVE (c))
+			{
+			    i++ ;
+			}
+		    }
+		    ASSERT (i > 0) ;
+		}
+	    }
+		}
+	}
+
+
+/* ========================================================================== */
+/* === debug_deg_lists ====================================================== */
+/* ========================================================================== */
+
+	/**
+	 * Prints the contents of the degree lists.  Counts the number of columns
+	 * in the degree list and compares it to the total it should have.  Also
+	 * checks the row degrees.
+	 *
+	 * @param n_row
+	 * @param n_col
+	 * @param Row
+	 * @param Col
+	 * @param head
+	 * @param min_score
+	 * @param should
+	 * @param max_deg
+	 */
+	private static void debug_deg_lists (int n_row, int n_col,
+			Colamd_Row[] Row, Colamd_Col[] Col, int[] head, int min_score,
+			int should, int max_deg)
+	{
+		if (!NDEBUG)
+		{
+		/* === Local variables ============================================== */
+
+	    int deg ;
+	    int col ;
+	    int have ;
+	    int row ;
+
+	    /* === Check the degree lists ======================================= */
+
+	    if (n_col > 10000 && colamd_debug <= 0)
+	    {
+		return ;
+	    }
+	    have = 0 ;
+	    DEBUG4 ("Degree lists: %d\n", min_score) ;
+	    for (deg = 0 ; deg <= n_col ; deg++)
+	    {
+		col = head [deg] ;
+		if (col == EMPTY)
+		{
+		    continue ;
+		}
+		DEBUG4 ("%d:", deg) ;
+		while (col != EMPTY)
+		{
+		    DEBUG4 (" %d", col) ;
+		    have += Col [col].shared1.thickness ;
+		    ASSERT (COL_IS_ALIVE (col)) ;
+		    col = Col [col].shared4.degree_next ;
+		}
+		DEBUG4 ("\n") ;
+	    }
+	    DEBUG4 ("should %d have %d\n", should, have) ;
+	    ASSERT (should == have) ;
+
+	    /* === Check the row degrees ======================================== */
+
+	    if (n_row > 10000 && colamd_debug <= 0)
+	    {
+		return ;
+	    }
+	    for (row = 0 ; row < n_row ; row++)
+	    {
+		if (ROW_IS_ALIVE (row))
+		{
+		    ASSERT (Row [row].shared1.degree <= max_deg) ;
+		}
+	    }
+		}
+	}
+
+
+/* ========================================================================== */
+/* === debug_mark =========================================================== */
+/* ========================================================================== */
+
+	/**
+	 * Ensures that the tag_mark is less that the maximum and also ensures that
+	 * each entry in the mark array is less than the tag mark.
+	 *
+	 * @param n_row
+	 * @param Row
+	 * @param tag_mark
+	 * @param max_mark
+	 */
+	private static void debug_mark (int n_row, Colamd_Row[] Row, int tag_mark,
+			int max_mark)
+	{
+		if (!NDEBUG)
+		{
+		/* === Local variables ============================================== */
+
+	    int r ;
+
+	    /* === Check the Row marks ========================================== */
+
+	    ASSERT (tag_mark > 0 && tag_mark <= max_mark) ;
+	    if (n_row > 10000 && colamd_debug <= 0)
+	    {
+		return ;
+	    }
+	    for (r = 0 ; r < n_row ; r++)
+	    {
+		ASSERT (Row [r].shared2.mark < tag_mark) ;
+	    }
+		}
+	}
+
+
+/* ========================================================================== */
+/* === debug_matrix ========================================================= */
+/* ========================================================================== */
+
+	/**
+	 * Prints out the contents of the columns and the rows.
+	 *
+	 * @param n_row
+	 * @param n_col
+	 * @param Row
+	 * @param Col
+	 * @param A
+	 */
+	private static void debug_matrix (int n_row, int n_col,
+			Colamd_Row[] Row, Colamd_Col[] Col, int[] A)
+	{
+		if (!NDEBUG)
+		{
+		/* === Local variables ============================================== */
+
+	    int r ;
+	    int c ;
+	    int rp ;
+	    int rp_end ;
+	    int cp ;
+	    int cp_end ;
+
+	    /* === Dump the rows and columns of the matrix ====================== */
+
+	    if (colamd_debug < 3)
+	    {
+		return ;
+	    }
+	    DEBUG3 ("DUMP MATRIX:\n") ;
+	    for (r = 0 ; r < n_row ; r++)
+	    {
+		DEBUG3 ("Row %d alive? %d\n", r, ROW_IS_ALIVE (r)) ;
+		if (ROW_IS_DEAD (r))
+		{
+		    continue ;
+		}
+		DEBUG3 ("start %d length %d degree %d\n",
+			Row [r].start, Row [r].length, Row [r].shared1.degree) ;
+		rp = A [Row [r].start] ;
+		rp_end = rp + Row [r].length ;
+		while (rp < rp_end)
+		{
+		    c = rp++ ;
+		    DEBUG4 ("	%d col %d\n", COL_IS_ALIVE (c), c) ;
+		}
+	    }
+
+	    for (c = 0 ; c < n_col ; c++)
+	    {
+		DEBUG3 ("Col %d alive? %d\n", c, COL_IS_ALIVE (c)) ;
+		if (COL_IS_DEAD (c))
+		{
+		    continue ;
+		}
+		DEBUG3 ("start %d length %d shared1 %d shared2 %d\n",
+			Col [c].start, Col [c].length,
+			Col [c].shared1.thickness, Col [c].shared2.score) ;
+		cp = A [Col [c].start] ;
+		cp_end = cp + Col [c].length ;
+		while (cp < cp_end)
+		{
+		    r = cp++ ;
+		    DEBUG4 ("	%d row %d\n", ROW_IS_ALIVE (r), r) ;
+		}
+	    }
+		}
+	}
+
+	private static void colamd_get_debug (String method)
+	{
+		if (!NDEBUG)
+		{
+	    FILE f ;
+	    colamd_debug = 0 ;		/* no debug printing */
+	    f = fopen ("debug", "r") ;
+	    if (f == (FILE) NULL)
+	    {
+		colamd_debug = 0 ;
+	    }
+	    else
+	    {
+		fscanf (f, "%d", colamd_debug) ;
+		fclose (f) ;
+	    }
+	    DEBUG0 ("%s: debug version, D = %d (THIS WILL BE SLOW!)\n",
+	    	method, colamd_debug) ;
+		}
+	}
 }
