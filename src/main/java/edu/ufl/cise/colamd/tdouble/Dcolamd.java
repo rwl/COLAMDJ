@@ -711,7 +711,7 @@ public class Dcolamd {
 	 * @return TRUE if OK, FALSE otherwise
 	 */
 	public static int symamd (int n, int[] A, int[] p, int[] perm,
-			double[] knobs, int[] stats, Object allocate, Object release)
+			double[] knobs, int[] stats)
 	{
 		/* === Local variables ============================================== */
 
