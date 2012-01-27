@@ -49,9 +49,6 @@ import static edu.ufl.cise.colamd.tdouble.Dcolamd.SYMAMD_report;
  *   0 0 0 x x
  *
  * (where x denotes a nonzero value).
- *
- * See http://www.cise.ufl.edu/research/sparse/colamd/ (the colamd.c file)
- * for the routines this program calls, and for the License.
 */
 public class Dcolamd_example extends TestCase {
 
@@ -63,7 +60,7 @@ public class Dcolamd_example extends TestCase {
 	int B_NNZ = 4 ;
 	int B_N = 5 ;
 
-	public void colamd_test() {
+	public void test_colamd() {
 
 		/* ====================================================================== */
 		/* input matrix A definition */

@@ -171,8 +171,6 @@ public class Dcolamd {
 
 	*/
 
-	private static String ID = "%d" ;
-
 	private static int Int_MAX = Integer.MAX_VALUE;
 
 /* ========================================================================== */
@@ -263,11 +261,6 @@ public class Dcolamd {
 
 	}
 
-	private static final double MIN (double a, double b)
-	{
-		return (((a) < (b)) ? (a) : (b)) ;
-	}
-
 	private static int DENSE_DEGREE (double alpha, int n)
 	{
 		return ((int) MAX (16.0, (alpha) * sqrt ((double) (n)))) ;
@@ -294,7 +287,7 @@ public class Dcolamd {
 	/* Row and column status update and checking. */
 	private static boolean ROW_IS_DEAD(Colamd_Row[] Row, int r)
 	{
-		return ROW_IS_MARKED_DEAD (Row[r].mark) ;
+		return ROW_IS_MARKED_DEAD (Row [r].mark) ;
 	}
 	private static boolean ROW_IS_MARKED_DEAD(int row_mark)
 	{
@@ -437,37 +430,39 @@ public class Dcolamd {
 	/**
 	 * add two values of type int, and check for integer overflow
 	 */
-//	private static int t_add (int a, int b, int ok)
-//	{
-//	    (ok) = (ok != 0) && ((a + b) >= MAX (a,b)) ? 1 : 0;
-//	    return ((ok != 0) ? (a + b) : 0) ;
-//	}
+	private static int t_add (int a, int b, int[] ok)
+	{
+	    (ok[0]) = (ok[0] != 0) && ((a + b) >= MAX (a,b)) ? 1 : 0;
+	    return ((ok[0] != 0) ? (a + b) : 0) ;
+	}
 
 	/**
 	 * compute a*k where k is a small integer, and check for integer overflow
 	 */
-//	static int t_mult (int a, int k, int ok)
-//	{
-//		int i, s = 0 ;
-//	    for (i = 0 ; i < k ; i++)
-//	    {
-//		s = t_add (s, a, ok) ;
-//	    }
-//	    return (s) ;
-//	}
+	static int t_mult (int a, int k, int[] ok)
+	{
+	    int i, s = 0 ;
+	    for (i = 0 ; i < k ; i++)
+	    {
+		s = t_add (s, a, ok) ;
+	    }
+	    return (s) ;
+	}
 
 	/**
 	 * size of the Col and Row structures
 	 */
-//	private static int COLAMD_C(int n_col, int ok)
-//	{
+	private static int COLAMD_C(int n_col, int[] ok)
+	{
 //		return ((t_mult (t_add (n_col, 1, ok), sizeof (Colamd_Col), ok) / sizeof (int))) ;
-//	}
+		return t_add (n_col, 1, ok) ;
+	}
 
-//	private static int COLAMD_R(int n_row, int ok)
-//	{
+	private static int COLAMD_R(int n_row, int[] ok)
+	{
 //	    return ((t_mult (t_add (n_row, 1, ok), sizeof (Colamd_Row), ok) / sizeof (int))) ;
-//	}
+	    return t_add (n_row, 1, ok) ;
+	}
 
 	/**
 	 *
@@ -485,27 +480,20 @@ public class Dcolamd {
 	public static int COLAMD_recommended (int nnz, int n_row, int n_col)
 	{
 		int s, c, r ;
-		int ok = TRUE ;
+		int[] ok = new int [] { TRUE } ;
 		if (nnz < 0 || n_row < 0 || n_col < 0)
 		{
 			return (0) ;
 		}
-		//s = t_mult (nnz, 2, ok) ;	    /* 2*nnz */
-		s = 2*nnz ;
-		//c = COLAMD_C (n_col, ok) ;	    /* size of column structures */
-		c = n_col ;
-		//r = COLAMD_R (n_row, ok) ;	    /* size of row structures */
-		r = n_row ;
-		//s = t_add (s, c, ok) ;
-		s = s + c ;
-		//s = t_add (s, r, ok) ;
-		s = s + r ;
-		//s = t_add (s, n_col, ok) ;	    /* elbow room */
-		s = s + n_col ;
-		//s = t_add (s, nnz/5, ok) ;	    /* elbow room */
-		s = s + nnz/5 ;
-		ok = (s < Int_MAX) ? 1 : 0;
-		return (ok != 0 ? s : 0) ;
+		s = t_mult (nnz, 2, ok) ;	    /* 2*nnz */
+//		c = COLAMD_C (n_col, ok) ;	    /* size of column structures */
+//		r = COLAMD_R (n_row, ok) ;	    /* size of row structures */
+//		s = t_add (s, c, ok) ;
+//		s = t_add (s, r, ok) ;
+		s = t_add (s, n_col, ok) ;	    /* elbow room */
+		s = t_add (s, nnz/5, ok) ;	    /* elbow room */
+		ok[0] = (s < Int_MAX) ? 1 : 0;
+		return (ok[0] != 0 ? s : 0) ;
 	}
 
 
@@ -734,7 +722,7 @@ public class Dcolamd {
 
 		if (!NDEBUG)
 		{
-			colamd_get_debug ("symamd") ;
+//			colamd_get_debug ("symamd") ;
 		}
 
 		/* === Check the input arguments ==================================== */
@@ -887,8 +875,6 @@ public class Dcolamd {
 			}
 		}
 
-		/* v2.4: removed free(mark) */
-
 		/* === Compute column pointers of M ================================= */
 
 		/* use output permutation, perm, for column pointers of M */
@@ -967,12 +953,11 @@ public class Dcolamd {
 					}
 				}
 			}
-			/* v2.4: free(mark) moved below */
 		}
 
 		/* count and mark no longer needed */
 		count = null ;
-		mark = null ;	/* v2.4: free (mark) moved here */
+		mark = null ;
 		ASSERT (k == n_row) ;
 
 		/* === Adjust the knobs for M ======================================= */
@@ -988,7 +973,6 @@ public class Dcolamd {
 
 		/* === Order the columns of M ======================================= */
 
-		/* v2.4: colamd cannot fail here, so the error check is removed */
 		colamd (n_row, n, Mlen, M, perm, cknobs, stats) ;
 
 		/* Note that the output permutation is now in perm */
@@ -1178,17 +1162,17 @@ public class Dcolamd {
 		int need ;		/* minimum required length of A */
 		Colamd_Row[] Row ;		/* pointer into A of Row [0..n_row] array */
 		Colamd_Col[] Col ;		/* pointer into A of Col [0..n_col] array */
-		int n_col2 ;		/* number of non-dense, non-empty columns */
-		int n_row2 ;		/* number of non-dense, non-empty rows */
+		int[] n_col2 = new int [1] ;		/* number of non-dense, non-empty columns */
+		int[] n_row2 = new int [1] ;		/* number of non-dense, non-empty rows */
 		int ngarbage ;		/* number of garbage collections performed */
-		int max_deg ;		/* maximum row degree */
+		int[] max_deg = new int [1] ;		/* maximum row degree */
 		double[] default_knobs = new double[COLAMD_KNOBS] ;	/* default knobs array */
 		int aggressive ;		/* do aggressive absorption */
-		int ok ;
+		int[] ok ;
 
 		if (!NDEBUG)
 		{
-			colamd_get_debug ("colamd") ;
+//			colamd_get_debug ("colamd") ;
 		}
 
 		/* === Check the input arguments ==================================== */
@@ -1265,23 +1249,17 @@ public class Dcolamd {
 
 		/* === Allocate the Row and Col arrays from array A ================= */
 
-		ok = TRUE ;
-		//Col_size = COLAMD_C (n_col, ok) ;	    /* size of Col array of structs */
-		Col_size = n_col ;
-		//Row_size = COLAMD_R (n_row, ok) ;	    /* size of Row array of structs */
-		Row_size = n_row ;
+		ok = new int [] { TRUE } ;
+		Col_size = COLAMD_C (n_col, ok) ;	    /* size of Col array of structs */
+		Row_size = COLAMD_R (n_row, ok) ;	    /* size of Row array of structs */
 
 		/* need = 2*nnz + n_col + Col_size + Row_size ; */
-		//need = t_mult (nnz, 2, ok) ;
-		need = 2 * nnz ;
-		//need = t_add (need, n_col, ok) ;
-		need = need + n_col ;
-		//need = t_add (need, Col_size, ok) ;
-		need = need + Col_size ;
-		//need = t_add (need, Row_size, ok) ;
-		need = need + Row_size ;
+		need = t_mult (nnz, 2, ok) ;
+		need = t_add (need, n_col, ok) ;
+//		need = t_add (need, Col_size, ok) ;
+//		need = t_add (need, Row_size, ok) ;
 
-		if (!(ok != 0) || need > (int) Alen || need > Int_MAX)
+		if ((ok[0] == 0) || need > (int) Alen || need > Int_MAX)
 		{
 			/* not enough space in array A to perform the ordering */
 			stats [COLAMD_STATUS] = COLAMD_ERROR_A_too_small ;
@@ -1291,9 +1269,9 @@ public class Dcolamd {
 			return (FALSE) ;
 		}
 
-		Alen -= Col_size + Row_size ;
-		Col = A [Alen] ;
-		Row = A [Alen + Col_size] ;
+//		Alen -= Col_size + Row_size ;
+		Col = new Colamd_Col [Col_size] ;  //A [Alen] ;
+		Row = new Colamd_Row [Row_size] ;  //A [Alen + Col_size] ;
 
 		/* === Construct the row and column data structures ================= */
 
@@ -1312,7 +1290,7 @@ public class Dcolamd {
 		/* === Order the supercolumns ======================================= */
 
 		ngarbage = find_ordering (n_row, n_col, Alen, Row, Col, A, p,
-				n_col2, max_deg, 2*nnz, aggressive) ;
+				n_col2[0], max_deg[0], 2*nnz, aggressive) ;
 
 		/* === Order the non-principal columns ============================== */
 
@@ -1320,8 +1298,8 @@ public class Dcolamd {
 
 		/* === Return statistics in stats =================================== */
 
-		stats [COLAMD_DENSE_ROW] = n_row - n_row2 ;
-		stats [COLAMD_DENSE_COL] = n_col - n_col2 ;
+		stats [COLAMD_DENSE_ROW] = n_row - n_row2[0] ;
+		stats [COLAMD_DENSE_COL] = n_col - n_col2[0] ;
 		stats [COLAMD_DEFRAG_COUNT] = ngarbage ;
 		DEBUG0 ("colamd: done.\n") ;
 		return (TRUE) ;
@@ -1382,11 +1360,11 @@ public class Dcolamd {
 	{
 		/* === Local variables ============================================== */
 
-		int col ;			/* a column index */
-		int row ;			/* a row index */
-		int cp ;			/* a column pointer */
+		int col ;		/* a column index */
+		int row ;		/* a row index */
+		int cp ;		/* a column pointer */
 		int cp_end ;		/* a pointer to the end of a column */
-		int rp ;			/* a row pointer */
+		int rp ;		/* a row pointer */
 		int rp_end ;		/* a pointer to the end of a row */
 		int last_row ;		/* previous row */
 
@@ -1602,7 +1580,7 @@ public class Dcolamd {
 
 	/**
 	 * Kills dense or empty columns and rows, calculates an initial score for
-	 * each column, and places all columns in the degree lists.
+	 * each column, and places all columns in the degree lists.init_rows_cols
 	 *
 	 * @param n_row number of rows of A
 	 * @param n_col number of columns of A
@@ -1611,13 +1589,13 @@ public class Dcolamd {
 	 * @param A column form and row form of A
 	 * @param head of size n_col+1
 	 * @param knobs parameters
-	 * @param p_n_row2 number of non-dense, non-empty rows
-	 * @param p_n_col2 number of non-dense, non-empty columns
-	 * @param p_max_deg maximum row degree
+	 * @param p_n_row2 size 1, number of non-dense, non-empty rows
+	 * @param p_n_col2 size 1, number of non-dense, non-empty columns
+	 * @param p_max_deg size 1, maximum row degree
 	 */
 	private static void init_scoring (int n_row, int n_col, Colamd_Row[] Row,
 			Colamd_Col[] Col, int[] A, int[] head, double[] knobs,
-			int p_n_row2, int p_n_col2, int p_max_deg)
+			int[] p_n_row2, int[] p_n_col2, int[] p_max_deg)
 	{
 		/* === Local variables ============================================== */
 
@@ -1637,7 +1615,7 @@ public class Dcolamd {
 		int max_deg ;          /* maximum row degree */
 		int next_col ;         /* Used to add to degree list.*/
 
-		int debug_count ;      /* debug only. */
+		int debug_count = 0 ;  /* debug only. */
 
 		/* === Extract knobs ================================================ */
 
@@ -1758,8 +1736,9 @@ public class Dcolamd {
 				{
 					continue ;
 				}
-				/* compact the column */
-				new_cp++ = row ;
+				/* FIXME: compact the column */
+				new_cp = row ;
+//				new_cp++ = row ;
 				/* add row's external degree */
 				score += Row [row].degree - 1 ;
 				/* guard against integer overflow */
@@ -1864,9 +1843,9 @@ public class Dcolamd {
 
 		/* === Return number of remaining columns, and max row degree ======= */
 
-		p_n_col2 = n_col2 ;
-		p_n_row2 = n_row2 ;
-		p_max_deg = max_deg ;
+		p_n_col2[0] = n_col2 ;
+		p_n_row2[0] = n_row2 ;
+		p_max_deg[0] = max_deg ;
 	}
 
 
@@ -1916,7 +1895,7 @@ public class Dcolamd {
 		int col ;               /* a column index */
 		int max_score ;         /* maximum possible score */
 		int cur_score ;         /* score of current column */
-		/*unsigned*/ int hash ; /* hash value for supernode detection */
+		/*FIXME: unsigned*/ int hash ; /* hash value for supernode detection */
 		int head_column ;       /* head of hash bucket */
 		int first_col ;         /* first column in hash bucket */
 		int tag_mark ;          /* marker value for mark array */
@@ -2248,8 +2227,9 @@ public class Dcolamd {
 					}
 					DEBUG4 (" Row %d, set diff %d\n", row, row_mark-tag_mark);
 					ASSERT (row_mark >= tag_mark) ;
-					/* compact the column */
-					new_cp++ = row ;
+					/* FIXME: compact the column */
+					new_cp = row ;
+//					new_cp++ = row ;
 					/* compute hash function */
 					hash += row ;
 					/* add set difference */
@@ -2357,7 +2337,8 @@ public class Dcolamd {
 				{
 					continue ;
 				}
-				new_rp++ = col ;
+				new_rp = col ;  // FIXME: pointer
+				//new_rp++ = col ;
 				/* add new pivot row to column */
 				A [Col [col].start + (Col [col].length++)] = pivot_row ;
 
@@ -2706,7 +2687,7 @@ public class Dcolamd {
 	 * Defragments and compacts columns and rows in the workspace A.  Used when
 	 * all avaliable memory has been used while performing row merging.  Returns
 	 * the index of the first free position in A, after garbage collection.  The
-	 * time taken by this routine is linear is the size of the array A, which is
+	 * time taken by this routine is linear in the size of the array A, which is
 	 * itself linear in the number of nonzeros in the input matrix.
 	 * Not user-callable.
 	 *
@@ -2730,7 +2711,7 @@ public class Dcolamd {
 		int c ;       /* a column index */
 		int length ;  /* length of a row or column */
 
-		int debug_rows ;
+		int debug_rows = 0 ;
 		if (!NDEBUG)
 		{
 			DEBUG2 ("Defrag..\n") ;
@@ -2756,7 +2737,8 @@ public class Dcolamd {
 					r = psrc++ ;
 					if (ROW_IS_ALIVE (Row, r))
 					{
-						pdest++ = r ;
+						pdest = r ;  // FIXME: pointer
+						//pdest++ = r ;
 					}
 				}
 				Col [c].length = (int) (pdest - A [Col [c].start]) ;
@@ -2815,7 +2797,8 @@ public class Dcolamd {
 					c = psrc++ ;
 					if (COL_IS_ALIVE (Col, c))
 					{
-						pdest++ = c ;
+						pdest = c ;
+//						pdest++ = c ;  // FIXME: pointer
 					}
 				}
 				Row [r].length = (int) (pdest - A [Row [r].start]) ;
@@ -3271,6 +3254,7 @@ public class Dcolamd {
 		}
 	}
 
+	@SuppressWarnings("unused")
 	private static void colamd_get_debug (String method)
 	{
 		if (!NDEBUG)
