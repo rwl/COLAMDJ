@@ -66,12 +66,14 @@ public class Dcolamd_example extends TestCase {
 		/* input matrix A definition */
 		/* ====================================================================== */
 
-		int[] A = new int [] {
+		int[] A = new int [ALEN] ;
+		int[] AA = new int [] {
 
 				0, 1, 4,	/* row indices of nonzeros in column 0 */
 				2, 4,		/* row indices of nonzeros in column 1 */
 				0, 1, 2, 3,	/* row indices of nonzeros in column 2 */
 				1, 3} ;		/* row indices of nonzeros in column 3 */
+		System.arraycopy(AA, 0, A, 0, AA.length) ;
 
 		int[] p = new int [] {
 

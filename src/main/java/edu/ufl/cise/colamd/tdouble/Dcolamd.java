@@ -174,68 +174,6 @@ public class Dcolamd {
 	private static int Int_MAX = Integer.MAX_VALUE;
 
 /* ========================================================================== */
-/* === Row and Column structures ============================================ */
-/* ========================================================================== */
-
-	/* User code that makes use of the colamd/symamd routines need not directly */
-	/* reference these structures.  They are used only for colamd_recommended. */
-
-	public class Colamd_Col {
-
-		/* index for A of first row in this column, or DEAD */
-		/* if column is dead */
-		public int start ;
-		/* number of rows in this column */
-		public int length ;
-
-		/* number of original columns represented by this */
-		/* col, if the column is alive */
-		public int thickness ;
-		/* parent in parent tree super-column structure, if */
-		/* the column is dead */
-		public int parent ;
-
-		/* the score used to maintain heap, if col is alive */
-		public int score ;
-		/* pivot ordering of this column, if col is dead */
-		public int order ;
-
-		/* head of a hash bucket, if col is at the head of */
-		/* a degree list */
-		public int headhash ;
-		/* hash value, if col is not in a degree list */
-		public int hash ;
-		/* previous column in degree list, if col is in a */
-		/* degree list (but not at the head of a degree list) */
-		public int prev ;
-
-		/* next column, if col is in a degree list */
-		public int degree_next ;
-		/* next column, if col is in a hash list */
-		public int hash_next ;
-
-	}
-
-	public class Colamd_Row {
-
-		/* index for A of first col in this row */
-		public int start ;
-		/* number of principal columns in this row */
-		public int length ;
-
-		/* number of principal & non-principal columns in row */
-		public int degree ;
-		/* used as a row pointer in init_rows_cols () */
-		public int p ;
-
-		/* for computing set differences and marking dead rows*/
-		public int mark ;
-		/* first column in row (used in garbage collection) */
-		public int first_column ;
-
-	}
-
-/* ========================================================================== */
 /* === Definitions ========================================================== */
 /* ========================================================================== */
 
@@ -1273,6 +1211,11 @@ public class Dcolamd {
 		Col = new Colamd_Col [Col_size] ;  //A [Alen] ;
 		Row = new Colamd_Row [Row_size] ;  //A [Alen + Col_size] ;
 
+		for (i = 0; i < Col_size; i++)
+			Col [i] = new Colamd_Col() ;
+		for (i = 0; i < Row_size; i++)
+			Row [i] = new Colamd_Row() ;
+
 		/* === Construct the row and column data structures ================= */
 
 		if (init_rows_cols (n_row, n_col, Row, Col, A, p, stats) == 0)
@@ -1360,6 +1303,7 @@ public class Dcolamd {
 	{
 		/* === Local variables ============================================== */
 
+		int i ;
 		int col ;		/* a column index */
 		int row ;		/* a row index */
 		int cp ;		/* a column pointer */
@@ -1410,9 +1354,10 @@ public class Dcolamd {
 			cp = A [p [col]] ;
 			cp_end = A [p [col+1]] ;
 
-			while (cp < cp_end)
+			for (i = 1 ; cp < cp_end ; i++)
 			{
-				row = cp++ ;
+				row = cp ;
+				cp = A [p [col] + i] ;
 
 				/* make sure row indices within range */
 				if (row < 0 || row >= n_row)
@@ -1475,11 +1420,13 @@ public class Dcolamd {
 			/* if cols jumbled, watch for repeated row indices */
 			for (col = 0 ; col < n_col ; col++)
 			{
-				cp = A [p [col]] ;
-				cp_end = A [p [col+1]] ;
+				cp = p [col] ;
+				cp_end = p [col+1] ;
+
 				while (cp < cp_end)
 				{
-					row = cp++ ;
+					row = A [cp++] ;
+
 					if (Row [row].mark != col)
 					{
 						A [(Row [row].p)++] = col ;
@@ -1493,11 +1440,11 @@ public class Dcolamd {
 			/* if cols not jumbled, we don't need the mark (this is faster) */
 			for (col = 0 ; col < n_col ; col++)
 			{
-				cp = A [p [col]] ;
-				cp_end = A [p [col+1]] ;
+				cp = p [col] ;
+				cp_end = p [col+1] ;
 				while (cp < cp_end)
 				{
-					A [(Row [cp++].p)++] = col ;
+					A [(Row [A [cp++]].p)++] = col ;
 				}
 			}
 		}
@@ -1525,11 +1472,11 @@ public class Dcolamd {
 				}
 				for (row = 0 ; row < n_row ; row++)
 				{
-					rp = A [Row [row].start] ;
+					rp = Row [row].start ;
 					rp_end = rp + Row [row].length ;
 					while (rp < rp_end)
 					{
-						p [rp++]-- ;
+						p [A [rp++]]-- ;
 					}
 				}
 				for (col = 0 ; col < n_col ; col++)
@@ -1559,11 +1506,11 @@ public class Dcolamd {
 
 			for (row = 0 ; row < n_row ; row++)
 			{
-				rp = A [Row [row].start] ;
+				rp = Row [row].start ;
 				rp_end = rp + Row [row].length ;
 				while (rp < rp_end)
 				{
-					A [(p [rp++])++] = row ;
+					A [(p [A [rp++]])++] = row ;
 				}
 			}
 		}
@@ -1677,11 +1624,11 @@ public class Dcolamd {
 				/* this is a dense column, kill and order it last */
 				Col [c].order = --n_col2 ;
 				/* decrement the row degrees */
-				cp = A [Col [c].start] ;
+				cp = Col [c].start ;
 				cp_end = cp + Col [c].length ;
 				while (cp < cp_end)
 				{
-					Row [cp++].degree-- ;
+					Row [A [cp++]].degree-- ;
 				}
 				KILL_PRINCIPAL_COL (Col, c) ;
 			}
@@ -1724,28 +1671,27 @@ public class Dcolamd {
 				continue ;
 			}
 			score = 0 ;
-			cp = A [Col [c].start] ;
+			cp = Col [c].start ;
 			new_cp = cp ;
 			cp_end = cp + Col [c].length ;
 			while (cp < cp_end)
 			{
 				/* get a row */
-				row = cp++ ;
+				row = A [cp++] ;
 				/* skip if dead */
 				if (ROW_IS_DEAD (Row, row))
 				{
 					continue ;
 				}
-				/* FIXME: compact the column */
-				new_cp = row ;
-//				new_cp++ = row ;
+				/* compact the column */
+				A [new_cp++] = row ;
 				/* add row's external degree */
 				score += Row [row].degree - 1 ;
 				/* guard against integer overflow */
 				score = MIN (score, n_col) ;
 			}
 			/* determine pruned column length */
-			col_length = (new_cp - A [Col [c].start]) ;
+			col_length = (new_cp - Col [c].start) ;
 			if (col_length == 0)
 			{
 				/* a newly-made null column (all rows in this col are "dense" */
@@ -1989,7 +1935,7 @@ public class Dcolamd {
 			needed_memory = MIN (pivot_col_score, n_col - k) ;
 			if (pfree + needed_memory >= Alen)
 			{
-				pfree = garbage_collection (n_row, n_col, Row, Col, A, A [pfree]) ;
+				pfree = garbage_collection (n_row, n_col, Row, Col, A, pfree) ;
 				ngarbage++ ;
 				/* after garbage collection we will have enough */
 				ASSERT (pfree + needed_memory < Alen) ;
@@ -2015,22 +1961,22 @@ public class Dcolamd {
 			Col [pivot_col].thickness = -pivot_col_thickness ;
 
 			/* pivot row is the union of all rows in the pivot column pattern */
-			cp = A [Col [pivot_col].start] ;
+			cp = Col [pivot_col].start ;
 			cp_end = cp + Col [pivot_col].length ;
 			while (cp < cp_end)
 			{
 				/* get a row */
-				row = cp++ ;
+				row = A [cp++] ;
 				DEBUG4 ("Pivot col pattern %d %d\n", ROW_IS_ALIVE (Row, row), row) ;
 				/* skip if row is dead */
 				if (ROW_IS_ALIVE (Row, row))
 				{
-					rp = A [Row [row].start] ;
+					rp = Row [row].start ;
 					rp_end = rp + Row [row].length ;
 					while (rp < rp_end)
 					{
 						/* get a column */
-						col = rp++ ;
+						col = A [rp++] ;
 						/* add the column, if alive and untagged */
 						col_thickness = Col [col].thickness ;
 						if (col_thickness > 0 && COL_IS_ALIVE (Col, col))
@@ -2059,12 +2005,12 @@ public class Dcolamd {
 			/* === Kill all rows used to construct pivot row ==================== */
 
 			/* also kill pivot row, temporarily */
-			cp = A [Col [pivot_col].start] ;
+			cp = Col [pivot_col].start ;
 			cp_end = cp + Col [pivot_col].length ;
 			while (cp < cp_end)
 			{
 				/* may be killing an already dead row */
-				row = cp++ ;
+				row = A [cp++] ;
 				DEBUG3 ("Kill row in pivot col: %d\n", row) ;
 				KILL_ROW (Row, row) ;
 			}
@@ -2113,11 +2059,11 @@ public class Dcolamd {
 
 			DEBUG3 ("Pivot row: ") ;
 			/* for each column in pivot row */
-			rp = A [pivot_row_start] ;
+			rp = pivot_row_start ;
 			rp_end = rp + pivot_row_length ;
 			while (rp < rp_end)
 			{
-				col = rp++ ;
+				col = A [rp++] ;
 				ASSERT (COL_IS_ALIVE (Col, col) && col != pivot_col) ;
 				DEBUG3 ("Col: %d\n", col) ;
 
@@ -2149,12 +2095,12 @@ public class Dcolamd {
 
 				/* === Scan the column ========================================== */
 
-				cp = A [Col [col].start] ;
+				cp = Col [col].start ;
 				cp_end = cp + Col [col].length ;
 				while (cp < cp_end)
 				{
 					/* get a row */
-					row = cp++ ;
+					row = A [cp++] ;
 					row_mark = Row [row].mark ;
 					/* skip if dead */
 					if (ROW_IS_MARKED_DEAD (row_mark))
@@ -2197,16 +2143,16 @@ public class Dcolamd {
 			DEBUG3 ("** Adding set differences phase. **\n") ;
 
 			/* for each column in pivot row */
-			rp = A [pivot_row_start] ;
+			rp = pivot_row_start ;
 			rp_end = rp + pivot_row_length ;
 			while (rp < rp_end)
 			{
 				/* get a column */
-				col = rp++ ;
+				col = A [rp++] ;
 				ASSERT (COL_IS_ALIVE (Col, col) && col != pivot_col) ;
 				hash = 0 ;
 				cur_score = 0 ;
-				cp = A [Col [col].start] ;
+				cp = Col [col].start ;
 				/* compact the column */
 				new_cp = cp ;
 				cp_end = cp + Col [col].length ;
@@ -2216,7 +2162,7 @@ public class Dcolamd {
 				while (cp < cp_end)
 				{
 					/* get a row */
-					row = cp++ ;
+					row = A [cp++] ;
 					ASSERT(row >= 0 && row < n_row) ;
 					row_mark = Row [row].mark ;
 					/* skip if dead */
@@ -2227,9 +2173,8 @@ public class Dcolamd {
 					}
 					DEBUG4 (" Row %d, set diff %d\n", row, row_mark-tag_mark);
 					ASSERT (row_mark >= tag_mark) ;
-					/* FIXME: compact the column */
-					new_cp = row ;
-//					new_cp++ = row ;
+					/* compact the column */
+					A [new_cp++] = row ;
 					/* compute hash function */
 					hash += row ;
 					/* add set difference */
@@ -2239,7 +2184,7 @@ public class Dcolamd {
 				}
 
 				/* recompute the column's length */
-				Col [col].length = (int) (new_cp - A [Col [col].start]) ;
+				Col [col].length = (int) (new_cp - Col [col].start) ;
 
 				/* === Further mass elimination ================================= */
 
@@ -2325,20 +2270,19 @@ public class Dcolamd {
 			DEBUG3 ("** Finalize scores phase. **\n") ;
 
 			/* for each column in pivot row */
-			rp = A [pivot_row_start] ;
+			rp = pivot_row_start ;
 			/* compact the pivot row */
 			new_rp = rp ;
 			rp_end = rp + pivot_row_length ;
 			while (rp < rp_end)
 			{
-				col = rp++ ;
+				col = A [rp++] ;
 				/* skip dead columns */
 				if (COL_IS_DEAD (Col, col))
 				{
 					continue ;
 				}
-				new_rp = col ;  // FIXME: pointer
-				//new_rp++ = col ;
+				A [new_rp++] = col ;
 				/* add new pivot row to column */
 				A [Col [col].start + (Col [col].length++)] = pivot_row ;
 
@@ -2396,7 +2340,7 @@ public class Dcolamd {
 				/* update pivot row length to reflect any cols that were killed */
 				/* during super-col detection and mass elimination */
 				Row [pivot_row].start  = pivot_row_start ;
-				Row [pivot_row].length = (int) (new_rp - A [pivot_row_start]) ;
+				Row [pivot_row].length = (int) (new_rp - pivot_row_start) ;
 				ASSERT (Row [pivot_row].length > 0) ;
 				Row [pivot_row].degree = pivot_row_degree ;
 				Row [pivot_row].mark = 0 ;
@@ -2570,11 +2514,11 @@ public class Dcolamd {
 
 		/* === Consider each column in the row ============================== */
 
-		rp = A [row_start] ;
+		rp = row_start ;
 		rp_end = rp + row_length ;
 		while (rp < rp_end)
 		{
-			col = rp++ ;
+			col = A [rp++] ;
 			if (COL_IS_DEAD (Col, col))
 			{
 				continue ;
@@ -2626,17 +2570,17 @@ public class Dcolamd {
 					}
 
 					/* compare the two columns */
-					cp1 = A [Col [super_c].start] ;
-					cp2 = A [Col [c].start] ;
+					cp1 = Col [super_c].start ;
+					cp2 = Col [c].start ;
 
 					for (i = 0 ; i < length ; i++)
 					{
 						/* the columns are "clean" (no dead rows) */
-						ASSERT (ROW_IS_ALIVE (Row, cp1))  ;
-						ASSERT (ROW_IS_ALIVE (Row, cp2))  ;
+						ASSERT (ROW_IS_ALIVE (Row, A [cp1]))  ;
+						ASSERT (ROW_IS_ALIVE (Row, A [cp2]))  ;
 						/* row indices will same order for both supercols, */
 						/* no gather scatter nessasary */
-						if (cp1++ != cp2++)
+						if (A [cp1++] != A [cp2++])
 						{
 							break ;
 						}
@@ -2715,33 +2659,32 @@ public class Dcolamd {
 		if (!NDEBUG)
 		{
 			DEBUG2 ("Defrag..\n") ;
-			for (psrc = A[0] ; psrc < pfree ; psrc++) ASSERT (psrc >= 0) ;
+			for (psrc = 0 ; psrc < pfree ; psrc++) ASSERT (A [psrc] >= 0) ;
 			debug_rows = 0 ;
 		}
 
 		/* === Defragment the columns ======================================= */
 
-		pdest = A[0] ;
+		pdest = 0 ;
 		for (c = 0 ; c < n_col ; c++)
 		{
 			if (COL_IS_ALIVE (Col, c))
 			{
-				psrc = A [Col [c].start] ;
+				psrc = Col [c].start ;
 
 				/* move and compact the column */
 				ASSERT (pdest <= psrc) ;
-				Col [c].start = (int) (pdest - A [0]) ;
+				Col [c].start = (int) (pdest - 0) ;
 				length = Col [c].length ;
 				for (j = 0 ; j < length ; j++)
 				{
-					r = psrc++ ;
+					r = A [psrc++] ;
 					if (ROW_IS_ALIVE (Row, r))
 					{
-						pdest = r ;  // FIXME: pointer
-						//pdest++ = r ;
+						A [pdest] = r ;
 					}
 				}
-				Col [c].length = (int) (pdest - A [Col [c].start]) ;
+				Col [c].length = (int) (pdest - Col [c].start) ;
 			}
 		}
 
@@ -2760,11 +2703,11 @@ public class Dcolamd {
 			else
 			{
 				/* save first column index in Row [r].shared2.first_column */
-				psrc = A [Row [r].start] ;
-				Row [r].first_column = psrc ;
+				psrc = Row [r].start ;
+				Row [r].first_column = A [psrc] ;
 				ASSERT (ROW_IS_ALIVE (Row, r)) ;
 				/* flag the start of the row with the one's complement of row */
-				psrc = ONES_COMPLEMENT (r) ;
+				A [psrc] = ONES_COMPLEMENT (r) ;
 				if (!NDEBUG)
 				{
 					debug_rows++ ;
@@ -2778,30 +2721,29 @@ public class Dcolamd {
 		while (psrc < pfree)
 		{
 			/* find a negative number ... the start of a row */
-			if (psrc++ < 0)
+			if (A [psrc++] < 0)
 			{
 				psrc-- ;
 				/* get the row index */
-				r = ONES_COMPLEMENT (psrc) ;
+				r = ONES_COMPLEMENT (A [psrc]) ;
 				ASSERT (r >= 0 && r < n_row) ;
 				/* restore first column index */
-				psrc = Row [r].first_column ;
+				A [psrc] = Row [r].first_column ;
 				ASSERT (ROW_IS_ALIVE (Row, r)) ;
 				ASSERT (Row [r].length > 0) ;
 				/* move and compact the row */
 				ASSERT (pdest <= psrc) ;
-				Row [r].start = (int) (pdest - A [0]) ;
+				Row [r].start = (int) (pdest - 0) ;
 				length = Row [r].length ;
 				for (j = 0 ; j < length ; j++)
 				{
-					c = psrc++ ;
+					c = A [psrc++] ;
 					if (COL_IS_ALIVE (Col, c))
 					{
-						pdest = c ;
-//						pdest++ = c ;  // FIXME: pointer
+						A [pdest++] = c ;
 					}
 				}
-				Row [r].length = (int) (pdest - A [Row [r].start]) ;
+				Row [r].length = (int) (pdest - Row [r].start) ;
 				ASSERT (Row [r].length > 0) ;
 				if (!NDEBUG)
 				{
@@ -2814,7 +2756,7 @@ public class Dcolamd {
 
 		/* === Return the new value of pfree ================================ */
 
-		return ((int) (pdest - A [0])) ;
+		return ((int) (pdest - 0)) ;
 	}
 
 
@@ -3027,11 +2969,11 @@ public class Dcolamd {
 					ASSERT (len > 0) ;
 					ASSERT (score >= 0) ;
 					ASSERT (Col [c].thickness == 1) ;
-					cp = A [Col [c].start] ;
+					cp = Col [c].start ;
 					cp_end = cp + len ;
 					while (cp < cp_end)
 					{
-						r = cp++ ;
+						r = A [cp++] ;
 						ASSERT (ROW_IS_ALIVE (Row, r)) ;
 					}
 				}
@@ -3051,11 +2993,11 @@ public class Dcolamd {
 					deg = Row [r].degree ;
 					ASSERT (len > 0) ;
 					ASSERT (deg > 0) ;
-					rp = A [Row [r].start] ;
+					rp = Row [r].start ;
 					rp_end = rp + len ;
 					while (rp < rp_end)
 					{
-						c = rp++ ;
+						c = A [rp++] ;
 						if (COL_IS_ALIVE (Col, c))
 						{
 							i++ ;
@@ -3224,11 +3166,11 @@ public class Dcolamd {
 				}
 				DEBUG3 ("start %d length %d degree %d\n",
 						Row [r].start, Row [r].length, Row [r].degree) ;
-				rp = A [Row [r].start] ;
+				rp = Row [r].start ;
 				rp_end = rp + Row [r].length ;
 				while (rp < rp_end)
 				{
-					c = rp++ ;
+					c = A [rp++] ;
 					DEBUG4 ("	%d col %d\n", COL_IS_ALIVE (Col, c), c) ;
 				}
 			}
@@ -3243,11 +3185,11 @@ public class Dcolamd {
 				DEBUG3 ("start %d length %d shared1 %d shared2 %d\n",
 						Col [c].start, Col [c].length,
 						Col [c].thickness, Col [c].score) ;
-				cp = A [Col [c].start] ;
+				cp = Col [c].start ;
 				cp_end = cp + Col [c].length ;
 				while (cp < cp_end)
 				{
-					r = cp++ ;
+					r = A [cp++] ;
 					DEBUG4 ("	%d row %d\n", ROW_IS_ALIVE (Row, r), r) ;
 				}
 			}
