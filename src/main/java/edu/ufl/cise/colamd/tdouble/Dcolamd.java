@@ -1303,7 +1303,6 @@ public class Dcolamd {
 	{
 		/* === Local variables ============================================== */
 
-		int i ;
 		int col ;		/* a column index */
 		int row ;		/* a row index */
 		int cp ;		/* a column pointer */
@@ -1444,8 +1443,9 @@ public class Dcolamd {
 				cp_end = p [col+1] ;
 				while (cp < cp_end)
 				{
-					A [Row [A [cp++]].p()] = col ;
-					Row [A [cp++]].p( Row [A [cp++]].p() + 1 ) ;
+					A [Row [A [cp]].p()] = col ;
+					Row [A [cp]].p( Row [A [cp]].p() + 1 ) ;
+					cp++ ;
 				}
 			}
 		}
@@ -1629,7 +1629,8 @@ public class Dcolamd {
 				cp_end = cp + Col [c].length ;
 				while (cp < cp_end)
 				{
-					Row [A [cp++]].degree( Row [A [cp++]].degree() - 1 ) ;
+					Row [A [cp]].degree( Row [A [cp]].degree() - 1 ) ;
+					cp++ ;
 				}
 				KILL_PRINCIPAL_COL (Col, c) ;
 			}
