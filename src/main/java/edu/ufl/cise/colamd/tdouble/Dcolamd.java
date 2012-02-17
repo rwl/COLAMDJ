@@ -225,7 +225,7 @@ public class Dcolamd {
 	/* Row and column status update and checking. */
 	private static boolean ROW_IS_DEAD(Colamd_Row[] Row, int r)
 	{
-		return ROW_IS_MARKED_DEAD (Row [r].mark) ;
+		return ROW_IS_MARKED_DEAD (Row [r].mark()) ;
 	}
 	private static boolean ROW_IS_MARKED_DEAD(int row_mark)
 	{
@@ -233,7 +233,7 @@ public class Dcolamd {
 	}
 	private static boolean ROW_IS_ALIVE(Colamd_Row[] Row, int r)
 	{
-		return (Row [r].mark >= ALIVE) ;
+		return (Row [r].mark() >= ALIVE) ;
 	}
 	private static boolean COL_IS_DEAD(Colamd_Col[] Col, int c)
 	{
@@ -249,7 +249,7 @@ public class Dcolamd {
 	}
 	private static void KILL_ROW(Colamd_Row[] Row, int r)
 	{
-		Row [r].mark = DEAD ;
+		Row [r].mark(DEAD) ;
 	}
 	private static void KILL_PRINCIPAL_COL(Colamd_Col[] Col, int c)
 	{
@@ -1329,10 +1329,10 @@ public class Dcolamd {
 				return (FALSE) ;
 			}
 
-			Col [col].thickness = 1 ;
-			Col [col].score = 0 ;
-			Col [col].prev = EMPTY ;
-			Col [col].degree_next = EMPTY ;
+			Col [col].thickness(1) ;
+			Col [col].score(0) ;
+			Col [col].prev(EMPTY) ;
+			Col [col].degree_next(EMPTY) ;
 		}
 
 		/* p [0..n_col] no longer needed, used as "head" in subsequent routines */
@@ -1344,7 +1344,7 @@ public class Dcolamd {
 		for (row = 0 ; row < n_row ; row++)
 		{
 			Row [row].length = 0 ;
-			Row [row].mark = -1 ;
+			Row [row].mark(-1) ;
 		}
 
 		for (col = 0 ; col < n_col ; col++)
@@ -1369,7 +1369,7 @@ public class Dcolamd {
 					return (FALSE) ;
 				}
 
-				if (row <= last_row || Row [row].mark == col)
+				if (row <= last_row || Row [row].mark() == col)
 				{
 					/* row index are unsorted or repeated (or both), thus col */
 					/* is jumbled.  This is a notice, not an error condition. */
@@ -1380,7 +1380,7 @@ public class Dcolamd {
 					DEBUG1 ("colamd: row %d col %d unsorted/duplicate\n",row,col);
 				}
 
-				if (Row [row].mark != col)
+				if (Row [row].mark() != col)
 				{
 					Row [row].length++ ;
 				}
@@ -1392,7 +1392,7 @@ public class Dcolamd {
 				}
 
 				/* mark the row as having been seen in this column */
-				Row [row].mark = col ;
+				Row [row].mark(col) ;
 
 				last_row = row ;
 			}
@@ -1403,13 +1403,13 @@ public class Dcolamd {
 		/* row form of the matrix starts directly after the column */
 		/* form of matrix in A */
 		Row [0].start = p [n_col] ;
-		Row [0].p = Row [0].start ;
-		Row [0].mark = -1 ;
+		Row [0].p(Row [0].start) ;
+		Row [0].mark(-1) ;
 		for (row = 1 ; row < n_row ; row++)
 		{
 			Row [row].start = Row [row-1].start + Row [row-1].length ;
-			Row [row].p = Row [row].start ;
-			Row [row].mark = -1 ;
+			Row [row].p(Row [row].start) ;
+			Row [row].mark(-1) ;
 		}
 
 		/* === Create row form ============================================== */
@@ -1426,10 +1426,11 @@ public class Dcolamd {
 				{
 					row = A [cp++] ;
 
-					if (Row [row].mark != col)
+					if (Row [row].mark() != col)
 					{
-						A [(Row [row].p)++] = col ;
-						Row [row].mark = col ;
+						A [Row [row].p()] = col ;
+						Row [row].p( Row [row].p() + 1 ) ;
+						Row [row].mark(col) ;
 					}
 				}
 			}
@@ -1443,7 +1444,8 @@ public class Dcolamd {
 				cp_end = p [col+1] ;
 				while (cp < cp_end)
 				{
-					A [(Row [A [cp++]].p)++] = col ;
+					A [Row [A [cp++]].p()] = col ;
+					Row [A [cp++]].p( Row [A [cp++]].p() + 1 ) ;
 				}
 			}
 		}
@@ -1452,8 +1454,8 @@ public class Dcolamd {
 
 		for (row = 0 ; row < n_row ; row++)
 		{
-			Row [row].mark = 0 ;
-			Row [row].degree = Row [row].length ;
+			Row [row].mark(0) ;
+			Row [row].degree(Row [row].length) ;
 		}
 
 		/* === See if we need to re-create columns ========================== */
@@ -1601,7 +1603,7 @@ public class Dcolamd {
 			if (deg == 0)
 			{
 				/* this is a empty column, kill and order it last */
-				Col [c].order = --n_col2 ;
+				Col [c].order(--n_col2) ;
 				KILL_PRINCIPAL_COL (Col, c) ;
 			}
 		}
@@ -1621,13 +1623,13 @@ public class Dcolamd {
 			if (deg > dense_col_count)
 			{
 				/* this is a dense column, kill and order it last */
-				Col [c].order = --n_col2 ;
+				Col [c].order(--n_col2) ;
 				/* decrement the row degrees */
 				cp = Col [c].start ;
 				cp_end = cp + Col [c].length ;
 				while (cp < cp_end)
 				{
-					Row [A [cp++]].degree-- ;
+					Row [A [cp++]].degree( Row [A [cp++]].degree() - 1 ) ;
 				}
 				KILL_PRINCIPAL_COL (Col, c) ;
 			}
@@ -1638,7 +1640,7 @@ public class Dcolamd {
 
 		for (r = 0 ; r < n_row ; r++)
 		{
-			deg = Row [r].degree ;
+			deg = Row [r].degree() ;
 			ASSERT (deg >= 0 && deg <= n_col) ;
 			if (deg > dense_row_count || deg == 0)
 			{
@@ -1685,7 +1687,7 @@ public class Dcolamd {
 				/* compact the column */
 				A [new_cp++] = row ;
 				/* add row's external degree */
-				score += Row [row].degree - 1 ;
+				score += Row [row].degree() - 1 ;
 				/* guard against integer overflow */
 				score = MIN (score, n_col) ;
 			}
@@ -1696,7 +1698,7 @@ public class Dcolamd {
 				/* a newly-made null column (all rows in this col are "dense" */
 				/* and have already been killed) */
 				DEBUG2 ("Newly null killed: %d\n", c) ;
-				Col [c].order = --n_col2 ;
+				Col [c].order(--n_col2) ;
 				KILL_PRINCIPAL_COL (Col, c) ;
 			}
 			else
@@ -1705,7 +1707,7 @@ public class Dcolamd {
 				ASSERT (score >= 0) ;
 				ASSERT (score <= n_col) ;
 				Col [c].length = col_length ;
-				Col [c].score = score ;
+				Col [c].score(score) ;
 			}
 		}
 		DEBUG1 ("colamd: Dense, null, and newly-null columns killed: %d\n",
@@ -1742,11 +1744,11 @@ public class Dcolamd {
 			if (COL_IS_ALIVE (Col, c))
 			{
 				DEBUG4 ("place %d score %d minscore %d ncol %d\n",
-						c, Col [c].score, min_score, n_col) ;
+						c, Col [c].score(), min_score, n_col) ;
 
 				/* === Add columns score to DList =============================== */
 
-				score = Col [c].score ;
+				score = Col [c].score() ;
 
 				ASSERT (min_score >= 0) ;
 				ASSERT (min_score <= n_col) ;
@@ -1756,14 +1758,14 @@ public class Dcolamd {
 
 				/* now add this column to dList at proper score location */
 				next_col = head [score] ;
-				Col [c].prev = EMPTY ;
-				Col [c].degree_next = next_col ;
+				Col [c].prev(EMPTY) ;
+				Col [c].degree_next(next_col) ;
 
 				/* if there already was a column with the same score, set its */
 				/* previous pointer to this new column */
 				if (next_col != EMPTY)
 				{
-					Col [next_col].prev = c ;
+					Col [next_col].prev(c) ;
 				}
 				head [score] = c ;
 
@@ -1908,23 +1910,23 @@ public class Dcolamd {
 			}
 			pivot_col = head [min_score] ;
 			ASSERT (pivot_col >= 0 && pivot_col <= n_col) ;
-			next_col = Col [pivot_col].degree_next ;
+			next_col = Col [pivot_col].degree_next() ;
 			head [min_score] = next_col ;
 			if (next_col != EMPTY)
 			{
-				Col [next_col].prev = EMPTY ;
+				Col [next_col].prev(EMPTY) ;
 			}
 
 			ASSERT (COL_IS_ALIVE (Col, pivot_col)) ;
 
 			/* remember score for defrag check */
-			pivot_col_score = Col [pivot_col].score ;
+			pivot_col_score = Col [pivot_col].score() ;
 
 			/* the pivot column is the kth column in the pivot order */
-			Col [pivot_col].order = k ;
+			Col [pivot_col].order(k) ;
 
 			/* increment order count by column thickness */
-			pivot_col_thickness = Col [pivot_col].thickness ;
+			pivot_col_thickness = Col [pivot_col].thickness() ;
 			k += pivot_col_thickness ;
 			ASSERT (pivot_col_thickness > 0) ;
 			DEBUG3 ("Pivot col: %d thick %d\n", pivot_col, pivot_col_thickness) ;
@@ -1957,7 +1959,7 @@ public class Dcolamd {
 
 			/* tag pivot column as having been visited so it isn't included */
 			/* in merged pivot row */
-			Col [pivot_col].thickness = -pivot_col_thickness ;
+			Col [pivot_col].thickness(-pivot_col_thickness) ;
 
 			/* pivot row is the union of all rows in the pivot column pattern */
 			cp = Col [pivot_col].start ;
@@ -1977,11 +1979,11 @@ public class Dcolamd {
 						/* get a column */
 						col = A [rp++] ;
 						/* add the column, if alive and untagged */
-						col_thickness = Col [col].thickness ;
+						col_thickness = Col [col].thickness() ;
 						if (col_thickness > 0 && COL_IS_ALIVE (Col, col))
 						{
 							/* tag column in pivot row */
-							Col [col].thickness = -col_thickness ;
+							Col [col].thickness(-col_thickness) ;
 							ASSERT (pfree < Alen) ;
 							/* place column in pivot row */
 							A [pfree++] = col ;
@@ -1992,7 +1994,7 @@ public class Dcolamd {
 			}
 
 			/* clear tag on pivot column */
-			Col [pivot_col].thickness = pivot_col_thickness ;
+			Col [pivot_col].thickness(pivot_col_thickness) ;
 			max_deg = MAX (max_deg, pivot_row_degree) ;
 
 			if (!NDEBUG)
@@ -2067,15 +2069,15 @@ public class Dcolamd {
 				DEBUG3 ("Col: %d\n", col) ;
 
 				/* clear tags used to construct pivot row pattern */
-				col_thickness = -Col [col].thickness ;
+				col_thickness = -Col [col].thickness() ;
 				ASSERT (col_thickness > 0) ;
-				Col [col].thickness = col_thickness ;
+				Col [col].thickness(col_thickness) ;
 
 				/* === Remove column from degree list =========================== */
 
-				cur_score = Col [col].score ;
-				prev_col = Col [col].prev ;
-				next_col = Col [col].degree_next ;
+				cur_score = Col [col].score() ;
+				prev_col = Col [col].prev() ;
+				next_col = Col [col].degree_next() ;
 				ASSERT (cur_score >= 0) ;
 				ASSERT (cur_score <= n_col) ;
 				ASSERT (cur_score >= EMPTY) ;
@@ -2085,11 +2087,11 @@ public class Dcolamd {
 				}
 				else
 				{
-					Col [prev_col].degree_next = next_col ;
+					Col [prev_col].degree_next(next_col) ;
 				}
 				if (next_col != EMPTY)
 				{
-					Col [next_col].prev = prev_col ;
+					Col [next_col].prev(prev_col) ;
 				}
 
 				/* === Scan the column ========================================== */
@@ -2100,7 +2102,7 @@ public class Dcolamd {
 				{
 					/* get a row */
 					row = A [cp++] ;
-					row_mark = Row [row].mark ;
+					row_mark = Row [row].mark() ;
 					/* skip if dead */
 					if (ROW_IS_MARKED_DEAD (row_mark))
 					{
@@ -2111,8 +2113,8 @@ public class Dcolamd {
 					/* check if the row has been seen yet */
 					if (set_difference < 0)
 					{
-						ASSERT (Row [row].degree <= max_deg) ;
-						set_difference = Row [row].degree ;
+						ASSERT (Row [row].degree() <= max_deg) ;
+						set_difference = Row [row].degree() ;
 					}
 					/* subtract column thickness from this row's set difference */
 					set_difference -= col_thickness ;
@@ -2126,7 +2128,7 @@ public class Dcolamd {
 					else
 					{
 						/* save the new mark */
-						Row [row].mark = set_difference + tag_mark ;
+						Row [row].mark(set_difference + tag_mark) ;
 					}
 				}
 			}
@@ -2163,7 +2165,7 @@ public class Dcolamd {
 					/* get a row */
 					row = A [cp++] ;
 					ASSERT(row >= 0 && row < n_row) ;
-					row_mark = Row [row].mark ;
+					row_mark = Row [row].mark() ;
 					/* skip if dead */
 					if (ROW_IS_MARKED_DEAD (row_mark))
 					{
@@ -2192,12 +2194,12 @@ public class Dcolamd {
 					DEBUG4 ("further mass elimination. Col: %d\n", col) ;
 					/* nothing left but the pivot row in this column */
 					KILL_PRINCIPAL_COL (Col, col) ;
-					pivot_row_degree -= Col [col].thickness ;
+					pivot_row_degree -= Col [col].thickness() ;
 					ASSERT (pivot_row_degree >= 0) ;
 					/* order it */
-					Col [col].order = k ;
+					Col [col].order(k) ;
 					/* increment order count by column thickness */
-					k += Col [col].thickness ;
+					k += Col [col].thickness() ;
 				}
 				else
 				{
@@ -2206,7 +2208,7 @@ public class Dcolamd {
 					DEBUG4 ("Preparing supercol detection for Col: %d.\n", col) ;
 
 					/* save score so far */
-					Col [col].score = cur_score ;
+					Col [col].score(cur_score) ;
 
 					/* add column to hash table, for supercolumn detection */
 					hash %= n_col + 1 ;
@@ -2219,8 +2221,8 @@ public class Dcolamd {
 					{
 						/* degree list "hash" is non-empty, use prev (shared3) of */
 						/* first column in degree list as head of hash bucket */
-						first_col = Col [head_column].headhash ;
-						Col [head_column].headhash = col ;
+						first_col = Col [head_column].headhash() ;
+						Col [head_column].headhash(col) ;
 					}
 					else
 					{
@@ -2228,10 +2230,10 @@ public class Dcolamd {
 						first_col = - (head_column + 2) ;
 						head [hash] = - (col + 2) ;
 					}
-					Col [col].hash_next = first_col ;
+					Col [col].hash_next(first_col) ;
 
 					/* save hash function in Col [col].shared3.hash */
-					Col [col].hash = (int) hash ;
+					Col [col].hash( (int) hash ) ;
 					ASSERT (COL_IS_ALIVE (Col, col)) ;
 				}
 			}
@@ -2288,22 +2290,22 @@ public class Dcolamd {
 				/* retrieve score so far and add on pivot row's degree. */
 				/* (we wait until here for this in case the pivot */
 				/* row's degree was reduced due to mass elimination). */
-				cur_score = Col [col].score + pivot_row_degree ;
+				cur_score = Col [col].score() + pivot_row_degree ;
 
 				/* calculate the max possible score as the number of */
 				/* external columns minus the 'k' value minus the */
 				/* columns thickness */
-				max_score = n_col - k - Col [col].thickness ;
+				max_score = n_col - k - Col [col].thickness() ;
 
 				/* make the score the external degree of the union-of-rows */
-				cur_score -= Col [col].thickness ;
+				cur_score -= Col [col].thickness() ;
 
 				/* make sure score is less or equal than the max score */
 				cur_score = MIN (cur_score, max_score) ;
 				ASSERT (cur_score >= 0) ;
 
 				/* store updated score */
-				Col [col].score = cur_score ;
+				Col [col].score(cur_score) ;
 
 				/* === Place column back in degree list ========================= */
 
@@ -2313,11 +2315,11 @@ public class Dcolamd {
 				ASSERT (cur_score <= n_col) ;
 				ASSERT (head [cur_score] >= EMPTY) ;
 				next_col = head [cur_score] ;
-				Col [col].degree_next = next_col ;
-				Col [col].prev = EMPTY ;
+				Col [col].degree_next(next_col) ;
+				Col [col].prev(EMPTY) ;
 				if (next_col != EMPTY)
 				{
-					Col [next_col].prev = col ;
+					Col [next_col].prev(col) ;
 				}
 				head [cur_score] = col ;
 
@@ -2341,8 +2343,8 @@ public class Dcolamd {
 				Row [pivot_row].start  = pivot_row_start ;
 				Row [pivot_row].length = (int) (new_rp - pivot_row_start) ;
 				ASSERT (Row [pivot_row].length > 0) ;
-				Row [pivot_row].degree = pivot_row_degree ;
-				Row [pivot_row].mark = 0 ;
+				Row [pivot_row].degree(pivot_row_degree) ;
+				Row [pivot_row].mark(0) ;
 				/* pivot row is no longer dead */
 
 				DEBUG1 ("Resurrect Pivot_row %d deg: %d\n",
@@ -2391,40 +2393,40 @@ public class Dcolamd {
 		{
 			/* find an un-ordered non-principal column */
 			ASSERT (COL_IS_DEAD (Col, i)) ;
-			if (!COL_IS_DEAD_PRINCIPAL (Col, i) && Col [i].order == EMPTY)
+			if (!COL_IS_DEAD_PRINCIPAL (Col, i) && Col [i].order() == EMPTY)
 			{
 				parent = i ;
 				/* once found, find its principal parent */
 				do
 				{
-					parent = Col [parent].parent ;
+					parent = Col [parent].parent() ;
 				} while (!COL_IS_DEAD_PRINCIPAL (Col, parent)) ;
 
 				/* now, order all un-ordered non-principal columns along path */
 				/* to this parent.  collapse tree at the same time */
 				c = i ;
 				/* get order of parent */
-				order = Col [parent].order ;
+				order = Col [parent].order() ;
 
 				do
 				{
-					ASSERT (Col [c].order == EMPTY) ;
+					ASSERT (Col [c].order() == EMPTY) ;
 
 					/* order this column */
-					Col [c].order = order++ ;
+					Col [c].order(order++) ;
 					/* collaps tree */
-					Col [c].parent = parent ;
+					Col [c].parent(parent) ;
 
 					/* get immediate parent of this column */
-					c = Col [c].parent ;
+					c = Col [c].parent() ;
 
 					/* continue until we hit an ordered column.  There are */
 					/* guarranteed not to be anymore unordered columns */
 					/* above an ordered column */
-				} while (Col [c].order == EMPTY) ;
+				} while (Col [c].order() == EMPTY) ;
 
 				/* re-order the super_col parent to largest order for this group */
-				Col [parent].order = order ;
+				Col [parent].order(order) ;
 			}
 		}
 
@@ -2432,7 +2434,7 @@ public class Dcolamd {
 
 		for (c = 0 ; c < n_col ; c++)
 		{
-			p [Col [c].order] = c ;
+			p [Col [c].order()] = c ;
 		}
 	}
 
@@ -2524,7 +2526,7 @@ public class Dcolamd {
 			}
 
 			/* get hash number for this column */
-			hash = Col [col].hash ;
+			hash = Col [col].hash() ;
 			ASSERT (hash <= n_col) ;
 
 			/* === Get the first column in this hash bucket ===================== */
@@ -2532,7 +2534,7 @@ public class Dcolamd {
 			head_column = head [hash] ;
 			if (head_column > EMPTY)
 			{
-				first_col = Col [head_column].headhash ;
+				first_col = Col [head_column].headhash() ;
 			}
 			else
 			{
@@ -2542,10 +2544,10 @@ public class Dcolamd {
 			/* === Consider each column in the hash bucket ====================== */
 
 			for (super_c = first_col ; super_c != EMPTY ;
-					super_c = Col [super_c].hash_next)
+					super_c = Col [super_c].hash_next())
 			{
 				ASSERT (COL_IS_ALIVE (Col, super_c)) ;
-				ASSERT (Col [super_c].hash == hash) ;
+				ASSERT (Col [super_c].hash() == hash) ;
 				length = Col [super_c].length ;
 
 				/* prev_c is the column preceding column c in the hash bucket */
@@ -2553,16 +2555,16 @@ public class Dcolamd {
 
 				/* === Compare super_c with all columns after it ================ */
 
-				for (c = Col [super_c].hash_next ;
-						c != EMPTY ; c = Col [c].hash_next)
+				for (c = Col [super_c].hash_next() ;
+						c != EMPTY ; c = Col [c].hash_next())
 				{
 					ASSERT (c != super_c) ;
 					ASSERT (COL_IS_ALIVE (Col, c)) ;
-					ASSERT (Col [c].hash == hash) ;
+					ASSERT (Col [c].hash() == hash) ;
 
 					/* not identical if lengths or scores are different */
 					if (Col [c].length != length ||
-							Col [c].score != Col [super_c].score)
+							Col [c].score() != Col [super_c].score())
 					{
 						prev_c = c ;
 						continue ;
@@ -2594,15 +2596,15 @@ public class Dcolamd {
 
 					/* === Got it!  two columns are identical =================== */
 
-					ASSERT (Col [c].score == Col [super_c].score) ;
+					ASSERT (Col [c].score() == Col [super_c].score()) ;
 
-					Col [super_c].thickness += Col [c].thickness ;
-					Col [c].parent = super_c ;
+					Col [super_c].thickness( Col [super_c].thickness() + Col [c].thickness() ) ;
+					Col [c].parent(super_c) ;
 					KILL_NON_PRINCIPAL_COL (Col, c) ;
 					/* order c later, in order_children() */
-					Col [c].order = EMPTY ;
+					Col [c].order(EMPTY) ;
 					/* remove c from hash bucket */
-					Col [prev_c].hash_next = Col [c].hash_next ;
+					Col [prev_c].hash_next(Col [c].hash_next()) ;
 				}
 			}
 
@@ -2611,7 +2613,7 @@ public class Dcolamd {
 			if (head_column > EMPTY)
 			{
 				/* corresponding degree list "hash" is not empty */
-				Col [head_column].headhash = EMPTY ;
+				Col [head_column].headhash(EMPTY) ;
 			}
 			else
 			{
@@ -2703,7 +2705,7 @@ public class Dcolamd {
 			{
 				/* save first column index in Row [r].shared2.first_column */
 				psrc = Row [r].start ;
-				Row [r].first_column = A [psrc] ;
+				Row [r].first_column(A [psrc]) ;
 				ASSERT (ROW_IS_ALIVE (Row, r)) ;
 				/* flag the start of the row with the one's complement of row */
 				A [psrc] = ONES_COMPLEMENT (r) ;
@@ -2727,7 +2729,7 @@ public class Dcolamd {
 				r = ONES_COMPLEMENT (A [psrc]) ;
 				ASSERT (r >= 0 && r < n_row) ;
 				/* restore first column index */
-				A [psrc] = Row [r].first_column ;
+				A [psrc] = Row [r].first_column() ;
 				ASSERT (ROW_IS_ALIVE (Row, r)) ;
 				ASSERT (Row [r].length > 0) ;
 				/* move and compact the row */
@@ -2783,7 +2785,7 @@ public class Dcolamd {
 			{
 				if (ROW_IS_ALIVE (Row, r))
 				{
-					Row [r].mark = 0 ;
+					Row [r].mark(0) ;
 				}
 			}
 			tag_mark = 1 ;
@@ -2963,11 +2965,11 @@ public class Dcolamd {
 				if (COL_IS_ALIVE (Col, c))
 				{
 					len = Col [c].length ;
-					score = Col [c].score ;
+					score = Col [c].score() ;
 					DEBUG4 ("initial live col %5d %5d %5d\n", c, len, score) ;
 					ASSERT (len > 0) ;
 					ASSERT (score >= 0) ;
-					ASSERT (Col [c].thickness == 1) ;
+					ASSERT (Col [c].thickness() == 1) ;
 					cp = Col [c].start ;
 					cp_end = cp + len ;
 					while (cp < cp_end)
@@ -2978,7 +2980,7 @@ public class Dcolamd {
 				}
 				else
 				{
-					i = Col [c].order ;
+					i = Col [c].order() ;
 					ASSERT (i >= n_col2 && i < n_col) ;
 				}
 			}
@@ -2989,7 +2991,7 @@ public class Dcolamd {
 				{
 					i = 0 ;
 					len = Row [r].length ;
-					deg = Row [r].degree ;
+					deg = Row [r].degree() ;
 					ASSERT (len > 0) ;
 					ASSERT (deg > 0) ;
 					rp = Row [r].start ;
@@ -3059,9 +3061,9 @@ public class Dcolamd {
 				while (col != EMPTY)
 				{
 					DEBUG4 (" %d", col) ;
-					have += Col [col].thickness ;
+					have += Col [col].thickness() ;
 					ASSERT (COL_IS_ALIVE (Col, col)) ;
-					col = Col [col].degree_next ;
+					col = Col [col].degree_next() ;
 				}
 				DEBUG4 ("\n") ;
 			}
@@ -3078,7 +3080,7 @@ public class Dcolamd {
 			{
 				if (ROW_IS_ALIVE (Row, row))
 				{
-					ASSERT (Row [row].degree <= max_deg) ;
+					ASSERT (Row [row].degree() <= max_deg) ;
 				}
 			}
 		}
@@ -3116,7 +3118,7 @@ public class Dcolamd {
 			}
 			for (r = 0 ; r < n_row ; r++)
 			{
-				ASSERT (Row [r].mark < tag_mark) ;
+				ASSERT (Row [r].mark() < tag_mark) ;
 			}
 		}
 	}
@@ -3164,7 +3166,7 @@ public class Dcolamd {
 					continue ;
 				}
 				DEBUG3 ("start %d length %d degree %d\n",
-						Row [r].start, Row [r].length, Row [r].degree) ;
+						Row [r].start, Row [r].length, Row [r].degree()) ;
 				rp = Row [r].start ;
 				rp_end = rp + Row [r].length ;
 				while (rp < rp_end)
@@ -3183,7 +3185,7 @@ public class Dcolamd {
 				}
 				DEBUG3 ("start %d length %d shared1 %d shared2 %d\n",
 						Col [c].start, Col [c].length,
-						Col [c].thickness, Col [c].score) ;
+						Col [c].thickness(), Col [c].score()) ;
 				cp = Col [c].start ;
 				cp_end = cp + Col [c].length ;
 				while (cp < cp_end)
