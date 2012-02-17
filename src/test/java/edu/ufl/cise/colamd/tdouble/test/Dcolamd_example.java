@@ -18,6 +18,7 @@
 
 package edu.ufl.cise.colamd.tdouble.test;
 
+import edu.ufl.cise.colamd.tdouble.Dcolamd;
 import junit.framework.TestCase;
 
 import static edu.ufl.cise.colamd.tdouble.Dcolamd.COLAMD_STATS;
@@ -61,6 +62,10 @@ public class Dcolamd_example extends TestCase {
 	int B_N = 5 ;
 
 	public void test_colamd() {
+
+		Dcolamd.NDEBUG = false;
+		Dcolamd.NPRINT = false;
+		Dcolamd.colamd_debug = 4;
 
 		/* ====================================================================== */
 		/* input matrix A definition */
