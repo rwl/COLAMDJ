@@ -285,7 +285,7 @@ public class Dcolamd {
 	}
 
 	/** debug print level */
-	private static int colamd_debug = 0 ;
+	public static int colamd_debug = 0 ;
 
 	protected static void DEBUG0 (String format, Object... args)
 	{
@@ -834,7 +834,7 @@ public class Dcolamd {
 		try
 		{
 			M = new int [Mlen] ;
-			DEBUG0 ("symamd: M is %d-by-%d with %d entries, Mlen = %g\n",
+			DEBUG0 ("symamd: M is %d-by-%d with %d entries, Mlen = %d\n",
 					n_row, n, mnz, Mlen) ;
 		} catch (OutOfMemoryError e) {
 			stats [COLAMD_STATUS] = COLAMD_ERROR_out_of_memory ;
@@ -1351,13 +1351,12 @@ public class Dcolamd {
 		{
 			last_row = -1 ;
 
-			cp = A [p [col]] ;
-			cp_end = A [p [col+1]] ;
+			cp = p [col] ;
+			cp_end = p [col+1] ;
 
-			for (i = 1 ; cp < cp_end ; i++)
+			while (cp < cp_end)
 			{
-				row = cp ;
-				cp = A [p [col] + i] ;
+				row = A [cp++] ;
 
 				/* make sure row indices within range */
 				if (row < 0 || row >= n_row)
@@ -1841,7 +1840,7 @@ public class Dcolamd {
 		int col ;               /* a column index */
 		int max_score ;         /* maximum possible score */
 		int cur_score ;         /* score of current column */
-		/*FIXME: unsigned*/ int hash ; /* hash value for supernode detection */
+		/* FIXME unsigned */ int hash ; /* hash value for supernode detection */
 		int head_column ;       /* head of hash bucket */
 		int first_col ;         /* first column in hash bucket */
 		int tag_mark ;          /* marker value for mark array */
@@ -1967,7 +1966,7 @@ public class Dcolamd {
 			{
 				/* get a row */
 				row = A [cp++] ;
-				DEBUG4 ("Pivot col pattern %d %d\n", ROW_IS_ALIVE (Row, row), row) ;
+				DEBUG4 ("Pivot col pattern %d %d\n", ROW_IS_ALIVE (Row, row) ? 1 : 0, row) ;
 				/* skip if row is dead */
 				if (ROW_IS_ALIVE (Row, row))
 				{
@@ -3159,7 +3158,7 @@ public class Dcolamd {
 			DEBUG3 ("DUMP MATRIX:\n") ;
 			for (r = 0 ; r < n_row ; r++)
 			{
-				DEBUG3 ("Row %d alive? %d\n", r, ROW_IS_ALIVE (Row, r)) ;
+				DEBUG3 ("Row %d alive? %d\n", r, ROW_IS_ALIVE (Row, r) ? 1 : 0) ;
 				if (ROW_IS_DEAD (Row, r))
 				{
 					continue ;
@@ -3171,13 +3170,13 @@ public class Dcolamd {
 				while (rp < rp_end)
 				{
 					c = A [rp++] ;
-					DEBUG4 ("	%d col %d\n", COL_IS_ALIVE (Col, c), c) ;
+					DEBUG4 ("	%d col %d\n", COL_IS_ALIVE (Col, c) ? 1 : 0, c) ;
 				}
 			}
 
 			for (c = 0 ; c < n_col ; c++)
 			{
-				DEBUG3 ("Col %d alive? %d\n", c, COL_IS_ALIVE (Col, c)) ;
+				DEBUG3 ("Col %d alive? %d\n", c, COL_IS_ALIVE (Col, c) ? 1 : 0) ;
 				if (COL_IS_DEAD (Col, c))
 				{
 					continue ;
@@ -3190,7 +3189,7 @@ public class Dcolamd {
 				while (cp < cp_end)
 				{
 					r = A [cp++] ;
-					DEBUG4 ("	%d row %d\n", ROW_IS_ALIVE (Row, r), r) ;
+					DEBUG4 ("	%d row %d\n", ROW_IS_ALIVE (Row, r) ? 1 : 0, r) ;
 				}
 			}
 		}
