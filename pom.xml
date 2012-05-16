@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.github.rwl</groupId>
   <artifactId>COLAMDJ</artifactId>
-  <version>1.0.1-SNAPSHOT</version>
+  <version>1.0.1</version>
   <name>COLAMDJ</name>
   <description>Column approximate minimum degree ordering algorithm.</description>
   <url>http://github.com/rwl/COLAMDJ</url>
@@ -19,7 +19,7 @@
     <url>git@github.com:rwl/COLAMDJ.git</url>
     <connection>scm:git:git@github.com:rwl/COLAMDJ.git</connection>
     <developerConnection>scm:git:git@github.com:rwl/COLAMDJ.git</developerConnection>
-    <tag>HEAD</tag>
+    <tag>COLAMDJ-1.0.1</tag>
   </scm>
 
   <developers>
