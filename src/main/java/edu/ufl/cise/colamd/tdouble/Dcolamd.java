@@ -417,7 +417,7 @@ public class Dcolamd {
 	 */
 	public static int COLAMD_recommended (int nnz, int n_row, int n_col)
 	{
-		int s, c, r ;
+		int s ;
 		int[] ok = new int [] { TRUE } ;
 		if (nnz < 0 || n_row < 0 || n_col < 0)
 		{
