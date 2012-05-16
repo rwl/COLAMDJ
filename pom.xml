@@ -13,9 +13,9 @@
   </licenses>
 
   <scm>
-    <url>git://github.com/rwl/COLAMDJ.git</url>
-    <connection>scm:git:git://github.com/rwl/COLAMDJ.git</connection>
-    <developerConnection>scm:git:git://github.com/rwl/COLAMDJ.git</developerConnection>
+    <url>git@github.com:rwl/COLAMDJ.git</url>
+    <connection>scm:git:git@github.com:rwl/COLAMDJ.git</connection>
+    <developerConnection>scm:git:git@github.com:rwl/COLAMDJ.git</developerConnection>
   </scm>
 
   <developers>
