@@ -1,7 +1,7 @@
 COLAMDJ
 =======
 
-column approximate minimum degree ordering algorithm. A translation of
+Column approximate minimum degree ordering algorithm. A translation of
 [COLAMD](http://www.cise.ufl.edu/research/sparse/colamd/) into Java by
 Richard Lincoln.
 
